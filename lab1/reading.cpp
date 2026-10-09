@@ -73,23 +73,30 @@ int read_key() {
     const int max_key = (int)ALPHABET.size() - 1;
     while (true) {
         cout << "Enter key [1," << max_key << "]: ";
-        int key;
-        if (cin >> key) {
-            discard_line();
+        string line;
+        if (!read_line_utf8(line)) exit(1);          // input closed
+
+        size_t b = line.find_first_not_of(" \t\r");
+        size_t e = line.find_last_not_of(" \t\r");
+        string s = (b == string::npos) ? "" : line.substr(b, e - b + 1);
+
+        bool ok = !s.empty() && s.size() <= 3;
+        for (char ch : s)
+            if (ch < '0' || ch > '9') ok = false;
+
+        if (ok) {
+            int key = stoi(s);
             if (key >= 1 && key <= max_key) return key;
-        } else if (cin.eof()) {
-            exit(1);
-        } else {
-            discard_line();
         }
-        cout << "Invalid key, key must be a number in the interval [1," << max_key << "].\n";
+        cout << "Invalid key, key must be a whole number in the interval [1,"
+             << max_key << "].\n";
     }
 }
 
 u32string read_key2() {
     const size_t min_len = 7;
     while (true) {
-        cout << "Enter second key (at least " << min_len << " letters): ";
+        cout << "Enter second key (Romanian letters only, at least " << min_len << " letters): ";
         string line;
         if (!read_line_utf8(line)) exit(1);
 

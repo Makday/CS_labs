@@ -22,10 +22,12 @@ int main() {
     SetConsoleCP(CP_UTF8);
     char type = read_operation();
     int key = read_key();
+    u32string key2 = read_key2();
     string text = read_text();
 
-    cout<<"The alphabet: "<<utf32to8(ALPHABET)<<'\n';
+    u32string alphabet = build_alphabet(key2, ALPHABET);
+    cout<<"The new built alphabet: "<<utf32to8(alphabet)<<'\n';
 
     if (type == 'd') key = -key;
-    cout <<"Result: "<<utf32to8(caesar_encrypt(normalize(text), key, ALPHABET)) << '\n';
+    cout <<"Result: "<<utf32to8(caesar_encrypt(normalize(text), key, alphabet)) << '\n';
 }
