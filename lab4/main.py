@@ -117,12 +117,37 @@ def read_k_plus() -> int:
         _show_k_plus(k_plus)
         return k_plus
 
+def show_table(name: str, table, cols: int) -> None:
+    print(f"\n--- {name} ---")
+    for i in range(0, len(table), cols):
+        print(" ".join(f"{x:2d}" for x in table[i:i + cols]))
+    print()
+
 if __name__ == "__main__":
     #k_plus = int("1111000_0110011_0010101_0101111_0101010_1011001_1001111_0001111",2)
     k_plus = read_k_plus()
-    c,d = split_c_d(k_plus)
+
+    # Tables used in the flow
+    show_table("Left-shift schedule (rounds 1-16)",
+               [1 if i in SINGLE_SHIFT_ROUNDS else 2 for i in range(1, 17)], 16)
+    show_table("PC-2 (56 -> 48 bits)", PC2, 6)
+
+    # Step 1: split k_plus into C0 / D0
+    c, d = split_c_d(k_plus)
+    print(f"C0 = {c:028b}")
+    print(f"D0 = {d:028b}\n")
+
+    # Step 2: shifted C_n / D_n for each round
     c_d_list = left_shift_schedule(c, d)
+    for i, (ci, di) in enumerate(c_d_list, 1):
+        shifts = 1 if i in SINGLE_SHIFT_ROUNDS else 2
+        print(f"Round {i:2d} (left shift by {shifts})")
+        print(f"  C{i:<2d}  = {ci:028b}")
+        print(f"  D{i:<2d}  = {di:028b}")
+        print(f"  C{i}D{i} = {ci:028b}{di:028b}")
+
+    # Step 3: apply PC-2 to each C_nD_n to get K_n
+    print("\n--- Subkeys (PC-2 applied to CnDn) ---")
     subkeys = generate_subkeys(c_d_list, PC2)
-    for subkey in subkeys:
-        b = f"{subkey:048b}"
-        print(b)
+    for i, subkey in enumerate(subkeys, 1):
+        print(f"K{i:<2d} = {subkey:048b}")
