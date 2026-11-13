@@ -1,3 +1,7 @@
+import secrets
+
+K_PLUS_BITS = 56
+
 PC2 = [14, 17, 11, 24,  1,  5,
         3, 28, 15,  6, 21, 10,
        23, 19, 12,  4, 26,  8,
@@ -50,8 +54,72 @@ def generate_subkeys(blocks, table, len: int = 56):
         subkeys.append(subkey)
     return subkeys
 
+def _show_k_plus(k_plus: int) -> None:
+    """Display k_plus in all forms."""
+    bits = f"{k_plus:0{K_PLUS_BITS}b}"
+    grouped = "_".join(bits[i:i + 7] for i in range(0, K_PLUS_BITS, 7))
+    raw = k_plus.to_bytes(K_PLUS_BITS // 8, "big")
+    print("\n--- k_plus ---")
+    print(f"Binary (56 bits)  : {grouped}")
+    print(f"Integer           : {k_plus}")
+    print(f"Hex               : 0x{k_plus:014X}")
+    print(f"Text (7 chars)    : {raw.decode('latin-1')!r}")
+    print("--------------\n")
+
+
+def read_k_plus() -> int:
+    """Read (or generate) a 56-bit k_plus. Returns it as an int."""
+    while True:
+        print("How do you want to provide k_plus?")
+        print("  1) Binary string (56 bits, '_' and spaces allowed)")
+        print("  2) Integer (decimal, or 0x.. hex, or 0b.. binary prefix)")
+        print("  3) Text (exactly 7 characters = 56 bits)")
+        print("  4) Generate randomly")
+        choice = input("Choice [1-4]: ").strip()
+
+        try:
+            if choice == "1":
+                s = input("Binary: ").replace("_", "").replace(" ", "")
+                if not s or set(s) - {"0", "1"}:
+                    raise ValueError("Only the characters 0 and 1 are allowed.")
+                if len(s) != K_PLUS_BITS:
+                    raise ValueError(f"Got {len(s)} bits, expected {K_PLUS_BITS}.")
+                k_plus = int(s, 2)
+
+            elif choice == "2":
+                s = input("Integer: ").strip().replace("_", "")
+                k_plus = int(s, 0)  # base 0 understands 0x / 0b prefixes
+                if not 0 <= k_plus < (1 << K_PLUS_BITS):
+                    raise ValueError(f"Value must be between 0 and 2^{K_PLUS_BITS} - 1.")
+
+            elif choice == "3":
+                s = input("Text (7 characters): ")
+                raw = s.encode("utf-8")
+                if len(raw) != K_PLUS_BITS // 8:
+                    raise ValueError(
+                        f"Got {len(raw)} bytes, expected {K_PLUS_BITS // 8} "
+                        "(non-ASCII characters take more than 1 byte)."
+                    )
+                k_plus = int.from_bytes(raw, "big")
+
+            elif choice == "4":
+                k_plus = secrets.randbits(K_PLUS_BITS)
+                print("Generated a random k_plus.")
+
+            else:
+                raise ValueError("Please choose 1, 2, 3 or 4.")
+
+        except ValueError as e:
+            print(f"Invalid input: {e}\n")
+            continue
+
+        assert 0 <= k_plus < (1 << K_PLUS_BITS)
+        _show_k_plus(k_plus)
+        return k_plus
+
 if __name__ == "__main__":
-    k_plus = int("1111000_0110011_0010101_0101111_0101010_1011001_1001111_0001111",2)
+    #k_plus = int("1111000_0110011_0010101_0101111_0101010_1011001_1001111_0001111",2)
+    k_plus = read_k_plus()
     c,d = split_c_d(k_plus)
     c_d_list = left_shift_schedule(c, d)
     subkeys = generate_subkeys(c_d_list, PC2)
